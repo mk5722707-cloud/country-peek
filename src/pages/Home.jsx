@@ -1,36 +1,51 @@
-useEffect(() => {
-  if (!query.trim()) {
-    setCountries([]);
-    setError(null);
-    return;
-  }
+import { useState } from "react";
+import SearchBar from "../components/SearchBar";
+import CountryCard from "../components/CountryCard";
+import FilterBar from "../components/FilterBar";
 
-  const controller = new AbortController();
+function Home() {
+  const [countries, setCountries] = useState([]);
+  const [region, setRegion] = useState("All");
+  const [sortBy, setSortBy] = useState("");
 
-  const timer = setTimeout(() => {
-    setLoading(true);
+  const displayed = [...countries]
+    .filter(
+      (country) =>
+        region === "All" || country.region === region
+    )
+    .sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.common.localeCompare(b.name.common);
+      }
 
-    fetch(`https://restcountries.com/v3.1/name/${query}`, {
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Not found");
-        return res.json();
-      })
-      .then((data) => {
-        setCountries(data);
-        setError(null);
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setCountries([]);
-        setError("No countries found.");
-      })
-      .finally(() => setLoading(false));
-  }, 400);
+      if (sortBy === "population") {
+        return b.population - a.population;
+      }
 
-  return () => {
-    clearTimeout(timer);
-    controller.abort(); // 🔑 cancel previous request
-  };
-}, [query]);
+      return 0;
+    });
+
+  return (
+    <div>
+      <SearchBar setCountries={setCountries} />
+
+      <FilterBar
+        region={region}
+        onRegionChange={setRegion}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
+
+      <div className="cards-grid">
+        {displayed.map((country) => (
+          <CountryCard
+            key={country.cca3}
+            country={country}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default Home;
